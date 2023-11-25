@@ -5,7 +5,83 @@ This repo has a focus on mechanistic and developmental interpretability, and occ
 
 ---
 # Developmental Interpretability
-From the **evolution** of the network across training, can we identify interesting phenomena (eg phase transitions)? Singularities in loss landscape: Large gradients, this can dominate learning!
+
+## Intro
+Based off 
+[[You’re Measuring Model Complexity Wrong](https://www.lesswrong.com/posts/6g8cAftfQufLmFDYT/you-re-measuring-model-complexity-wrong)]
+[[Towards Developmental Interpretability](https://www.lesswrong.com/posts/TjaeCWvLZtEDAS5Ex/towards-developmental-interpretability)]
+[[Neural networks generalize because of this one weird trick](https://www.lesswrong.com/posts/fovfuFdpuEwQzJu2w/neural-networks-generalize-because-of-this-one-weird-trick)]
+
+Identify structure from phase transitions as the network **evolves** across training. 
+
+- Why phase transitions?
+    - they exist (the most of this repo's notes are focused on phase transitions)
+    - easy to find, eg emergence of circuits. 
+        - Currently known observables to detect phase transitions: RLCT, singular fluctuation
+        - "we don't yet know how to invent finer observables of this kind, nor do we understand the mathematical nature of the emergent order."
+    - good candidates for universality
+- Why Singular Learning Theory?
+    - Singular models: parameters not unique (decent assumption in todays era where models are overparameterized)
+        - consequence: Loss landscape looks more like a valley than a basin (lowest loss is not a single point!)
+        - minimum loss sets can also look like a bunch of lines intersecting -- at this intersection, the tangent is ill-defined (singularity, hence the name for SLT!)
+        - "Complex singularities make for simpler functions that generalize further."
+    - In singular models, learning is dominated by phase transitions 
+        - "as information from more data samples is incorporated into the network weights, the Bayesian posterior can shift suddenly between qualitatively different kinds of configurations"
+        - "phase transitions can be thought of as a form of internal model selection where the Bayesian posterior selects regions of parameter space with the optimal tradeoff between accuracy and complexity"
+        - Compare this sudden shifting of params vs smooth changes in params from regular gradient descent -- this is why the former is likely to dominate
+    - "Phase transitions over the course of training have an unclear scientific status" but we hope SLT can explain some of them -- **Possibly related via the underlying geometry of the loss landscape**
+    - If we can **relate structures in NNs (eg circuits) to changes in the geometry of singularities**: new way of thinking about these systems!
+    - Additional notes
+        - Lower level aim of learning: find the optimal weights for the given dataset
+        - Higher lvl aim of learning:  find the optimal model class/architecture for the given dataset.
+            - Bayesian learning: integrate out weights to make statements over model classes, but usually intractable
+            - So use laplace approx of free energy, first 2 terms is the BIC, which balances accuracy and simplicity, i.e. regularization
+            - however, assumptions for laplace approx do not hold!
+                - parameter-function map is not one-to-one: can have different sets of weights that implement the same fn
+                - central limit theorem does not hold
+                - standard remedy: fit paraboloid to hessian of the loss landscape, add small $\epsilon$ to Hessians to make it invertible. This doesnt work in our case because the zeroes are important -- reduce the effective dimensionality of the model. 
+        - (after some physics): "If we manage to find a way to express $K(w)$ as a polynomial, this lets us to pull in the powerful machinery of algebraic geometry, which studies the zeros of polynomials. We've turned our problem of probability theory and statistics into a problem of algebra and geometry."
+        - Difficult to study these algebraic varieties ($W_0$, set of optimal params) close to their singularities, so must resolve them. Map them to a new manifold so that in the new coords, the singularities cross "normally"
+        - need to be careful that measured quantities dont change with mapping, so use birational invariants -- in particular, the RLCT ("effective dimensionality" near the singularity)
+            - More important than estimating the volume is estimating the volume dynamics and volume scaling
+        - Watanabe 2009 fixes the central limit theorem to work in singular models, deriving the asymptotic free energy (limit of infinite data)
+        - $\lambda$ is the smallest pole of the $\zeta$ fn, with multiplicity $m$
+            - for regular models (unique params), $\lambda=d/2, m=1$. asymptotic free energy simplifies to BIC!
+        - "The important observation here is that the global behavior of your model is dominated by the local behavior of its "worst" singularities. "
+        - Physics: study free energy because it is a generating fn, derivatives give us useful physical quantities. Bayesian inference: Free energy generates quantities we care about, like the expected generalization loss. In both cases, we are intersted in how continuously changing some params lead to phase transitions in the quantities!
+        - NNs generalize well due to their ability to exploit symmetry, but the generic ones (like $GL_n$ associated to the residual stream in transformers) are not that interesting because they are always present for any choice of $w$. We are interested in the non generic symmetries that depend on $w$. examples:
+            - " degenerate node symmetry, which is the well-known case in which a weight is equal to zero and performs no work"
+            - "weight annihilation symmetry in which multiple weights are non-zero but combine to have an effective weight of zero"
+        - see [Intuition for phase transitions](https://www.lesswrong.com/posts/6g8cAftfQufLmFDYT/you-re-measuring-model-complexity-wrong#Instead__Basin_Dimension) for a nice graphic
+        - SGLD: "allows random movement along low loss dimensions, while quickly pushing any step to a higher loss area back down."
+- Alignment / Safety
+    - **Abrupt changes are the most dangerous when it comes to alignment/ safety.**
+    - Potential Use Cases 
+        - Detecting deception in models
+            - Need tools to distinguish deceptive vs non-deceptive models that behave similarly on evaluation, but differently on out-of-distribution data. Use invariants (of model complexity)!
+        - Understanding reasoning in models to prevent dangerous scenarios
+        - Detecting situation awareness in models
+    - Goals in this context
+        - " detecting when structural changes happen during training"
+        - "localize these changes to a subset of the weights"
+        - "give the changes their proper context within the broader set of computational structures in the current state of the network. "
+- Challenges
+    - Maybe most of the important structures form _gradually_ instead of abruptly
+    - Maybe phase transitions occur so often that it is hard to discern meaningful ones from the rest
+    - Maybe the transitions are irreducibly complex; i.e. there is no computational advantage in using tools to understand the model
+        - Counterargument: locality in deep learning (eg lottery ticket hypothesis)
+    - Maybe the structures formed in phase transitions are too disjoint to give us a good understanding of the model
+    - NNs might not be doing Bayesian inference
+- Roadmap
+    - Apply tools to increasingly complex systems (eg induction heads)
+    - For models known to contain circuits
+        - use the tools to detect phase transitions
+        - attempt to classify weights at each transition into state variables, control variables, and irrelevant variables
+            - my note: renormalization group techniques are on their todo list, and its quite likely that this will be useful for the relevant/ irrelevant variables task?
+        - mech interp at checkpoints
+        - compare all these to structures found in the final model
+    - Improving estimates of $\hat{\lambda}$, address weaknesses of SGLD
+    - Other observables like singular fluctuation
 
 ### Quantifying degeneracy in singular models via the learning coefficient
 [[Repo](https://github.com/edmundlth/scalable_learning_coefficient_with_sgld/tree/v1.0)]
@@ -14,23 +90,15 @@ From the **evolution** of the network across training, can we identify interesti
 - local learning coeff $\lambda$ and local singular fluctuation $\nu$ for some param $\omega^*$
     - correspond roughly to complexity n functional diversity
     - their work: provide estimator for $\lambda$ that preserves ordering $\hat{\lambda}(\omega_A) < \hat{\lambda}(\omega_B)$ when $\lambda(\omega_A) < \lambda(\omega_B)$
+    - local (restrict to subset of weights) because it is more tractable than global
 - show that their measure can capture the degeneracy caused by entropy-SGD over regular SGD
 - "we conjecture that the nature of the degeneracy of DNNs might be the secret sauce behind their state-of-the-art performance on a wide range of tasks."
 - "The main application of the local singular fluctuation $\nu$ is in connection with phase transitions and will be treated in future work"
-- $\lambda$ is the smallest pole of the $\zeta$ fn, with multiplicity $m$
-- Definition 2: under some conditions, $\lambda$ is a birational invariant of $W_0$ (a set of optimal params) known in algebraic geom as the Real Log Cannonical Threshold (RLCT)
-- for regular models (unique params, which is totally not what NNs are), $\lambda=d/2, m=1$
+- Definition 2: under some conditions, $\lambda$ is a birational invariant of $W_0$ known in algebraic geom as the Real Log Cannonical Threshold (RLCT)
 - $\nu$ is the expected value of a functional variance in the large data limit
-- hessian estimates are wrong, need rethinking
-- BIC is the first 2 terms of the laplace approx of free energy
-    - however, theres sth not valid about this expansion, but this is corrected in watanabe 2009 and is one of the major theorems in SLT
 - thm 4 of watanabe 2013 proposes "widely applicable BIC" (WBIC), a good estimator of free energy and does so at single temperature (other methods need to be computed across multiple temperatures)
-
-### You’re Measuring Model Complexity Wrong
-[[Post](https://www.lesswrong.com/posts/6g8cAftfQufLmFDYT/you-re-measuring-model-complexity-wrong)]
-
-### Towards Developmental Interpretability
-[[Post](https://www.lesswrong.com/posts/TjaeCWvLZtEDAS5Ex/towards-developmental-interpretability)]
+- $\hat{\lambda}$ estimation still needs hyperparams like number of samples, localizing strength, SGLD learning rate which the true value $\lambda$ is independent of
+- see [this](https://www.lesswrong.com/posts/6g8cAftfQufLmFDYT/you-re-measuring-model-complexity-wrong#Limitations) for limitations
 
 ------
 # Mechanistic Interpretability
@@ -114,10 +182,11 @@ From weights, can we identify explainable algorithms?
         - "The results show that poor selection of the subnetworks hurts the generalization, suggesting that grokking tickets hold good properties beyond just sparsity"
     - no generalization speedup when using tickets from memorization stage, transition between memorization and generalization (cleanup stage)
     - grokking occurs for various pruning ratios, except when it is too high (eg 0.9 where the accuracy gets stuck around 0.4, indicating lack of capacity in NN)
-    - when using a grokking ticket with the largest pruning ratio that allows for grokking (pruning ratio of 0.81, obtained via param sweep between 0.8 and 0.9), grokking occurs even without weight decay!
+    - when using a grokking ticket with the largest pruning ratio that allows for grokking (pruning ratio of 0.81, obtained via param sweep between 0.8 and 0.9), generalization occurs even without weight decay! (they used the term "grokking" but not sure if its the right word as the generalization is immediate)
         - "suggesting that weight decay is crucial for uncovering the lottery tickets but becomes redundant after their discovery"
-        - note that this critical pruning ratio of 0.81 is important because if weight decay is important, then it might prune away some weights to increase the pruning ratio and thus disable grokking
-        - note: this pheonmenon only for MLP. In transformers, no weight decay disables grokking
+        - note that this critical pruning ratio of 0.81 is important because if weight decay is important, then it might prune away some weights to increase the pruning ratio and thus disable generalization
+        - note: this pheonmenon only for MLP, they did not observe the same in transformers
+        - **BIG NOTE** I observe that the test accuracy of the grokking ticket without weight decay plateaus **below** the base model, suggesting that the lack of weight decay can still hurt performance
 - "results imply that the transition between the memorized and generalized solution corresponds to exploring good subnetworks, i.e., lottery tickets."
 - Important appendix stuff
     - E: Confirming that grokking tickets give good representations
@@ -133,10 +202,6 @@ From weights, can we identify explainable algorithms?
 [[Post](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html)]
 - giving the network one component (via the smeared key architecture) erases the phase transition
 
-### Understanding Addition in Transformers
-[[Paper](https://arxiv.org/abs/2310.13121)]
-- Observation: Phase transition for each digit in integer addition
-- This paper: Model trains each digit semi-independently, hence multiple phase transitions
 
 ----
 # Generic
@@ -159,7 +224,7 @@ From weights, can we identify explainable algorithms?
 ### DevInterp library
 [[Repo](https://github.com/timaeus-research/devinterp)]
 - For now only has estimation for lambda
-
+- tip: "sweep over SGLD LR and localization strength, be as large as possible and visualize trace of losses, should grow n plateau. Tune to FINAL weights"
 
 -------
 # TODO
@@ -167,11 +232,14 @@ From weights, can we identify explainable algorithms?
 ### Investigating the learning coefficient of modular addition: hackathon project
 [[Post](https://www.lesswrong.com/posts/4v3hMuKfsGatLXPgt/investigating-the-learning-coefficient-of-modular-addition)]
 
-
-### Multi-Component Learning and S-Curves
-[[Post](https://www.alignmentforum.org/posts/RKDQCB6smLWgs2Mhr/multi-component-learning-and-s-curves)]
-
 ### A Mathematical Framework for Transformer Circuits
 [[Post](https://transformer-circuits.pub/2021/framework/index.html)]
 
+### Understanding Addition in Transformers
+[[Paper](https://arxiv.org/abs/2310.13121)]
+- Observation: Phase transition for each digit in integer addition
+- This paper: Model trains each digit semi-independently, hence multiple phase transitions
 
+### Multi-Component Learning and S-Curves
+[[Post](https://www.alignmentforum.org/posts/RKDQCB6smLWgs2Mhr/multi-component-learning-and-s-curves)]
+-  for low rank matrix, when we increase rank, more chances ...(some probability argument) ... dissipates grokking (immediate learning)
