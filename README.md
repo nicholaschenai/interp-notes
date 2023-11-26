@@ -212,7 +212,7 @@ From weights, can we identify explainable algorithms?
     - analyze vector by PCA and 2D projection
 - Heuristic measure of ICL ("ICL score"): loss of 500th token - avg loss of 50th token in the context, averaged over dataset examples. (authors also varied the numbers to show that conclusions do not change)
 
-- 1. "Transformer language models undergo a “phase change” early in training, during which induction heads form and simultaneously in-context learning improves dramatically."
+1. "Transformer language models undergo a “phase change” early in training, during which induction heads form and simultaneously in-context learning improves dramatically."
     - medium, correlational evidence across model sizes
     - models with > 1 layer exhibit phase transition in ICL score 
         - during phase transition, derivative of loss wrt token index turns negative for such models even for large token indices, i.e. models continue to reduce loss with longer context.
@@ -222,24 +222,24 @@ From weights, can we identify explainable algorithms?
     - caution
         - for larger models, time resolution is lower (15 data points for the phase transition) so evidence is weaker
         - correlation != causation as usual. might be a shared latent variable
-- 2. " When we change the transformer architecture in a way that shifts whether induction heads can form (and when), the dramatic improvement in in-context learning shifts in a precisely matching way."
+2. " When we change the transformer architecture in a way that shifts whether induction heads can form (and when), the dramatic improvement in in-context learning shifts in a precisely matching way."
     - medium, interventional evidence for small models, weak, interventional evidence for large models
     - smeared key architecture: give the network one of two components of an induction head
         - one layer model now displays phase change in ICL score! recall that one layer model might struggle to express 2 components, but giving it one component and seeing the phase transition appear suggests that induction heads play a role in ICL
         - for models > 1 layer, the phase change occurs much earlier after giving it the smeared key arch
-- 3. Ablating induction heads decreases ICL
+3. Ablating induction heads decreases ICL
     - strong-med causal evidence for small models
     - ablate over different types of heads; ablating induction heads generally cause worse performance, but not so for other types of heads!
-- 4. Empirical observation that induction heads " also appear to implement more sophisticated types of in-context learning, including highly abstract behaviors"
+4. Empirical observation that induction heads " also appear to implement more sophisticated types of in-context learning, including highly abstract behaviors"
     - plausible for large models
     - Behavior 1: Literal sequence copying
     - Behavior 2: Translation
     - Behavior 3: Pattern matching
-- 5. "For small models, we can explain mechanistically how induction heads work, and can show they contribute to in-context learning. Furthermore, the actual mechanism of operation suggests natural ways in which it could be re-purposed to perform more general in-context learning."
+5. "For small models, we can explain mechanistically how induction heads work, and can show they contribute to in-context learning. Furthermore, the actual mechanism of operation suggests natural ways in which it could be re-purposed to perform more general in-context learning."
     - contributes some: strong, mechanistic for small models, medium, mechanistic for large models
     - can reverse engineer induction heads in transformers but not those with MLP layers
     - see [their previous work](https://transformer-circuits.pub/2021/framework/index.html) for reverse engineering induction heads
-- 6. "Extrapolation from small models suggests induction heads are responsible for the majority of in-context learning in large models."
+6. "Extrapolation from small models suggests induction heads are responsible for the majority of in-context learning in large models."
     - model analysis table to show how some behaviors persist when varying from small to large models
     - there are cases where large models behave differently from small models, so extrapolate with caution
         - eg other composition mechanisms may form during the phase change as larger models have more heads to do so
@@ -257,13 +257,125 @@ From weights, can we identify explainable algorithms?
     - studying ICL is impt for safety as "model behavior can in some sense “change” during inference, without further training", and this behavior can be unwanted
     - "We did not observe any evidence of mesa-optimizers."
 - Other
-    - " Circuits thread tried to extend this notion of universality from features to circuits, finding that not only do at least some families of well-characterized neurons reoccur across multiple networks of different architectures and that the same circuits, but the same circuits appear to implement them"
+    - "Circuits thread tried to extend this notion of universality from features to circuits, finding that not only do at least some families of well-characterized neurons reoccur across multiple networks of different architectures and that the same circuits, but the same circuits appear to implement them"
 
 ### Toy Models of Superposition
 [[Post](https://transformer-circuits.pub/2022/toy_model/index.html)]
-- Toy models: small ReLU networks trained on synthetic data with sparse input features
-- Superposition: models represent more features than dimensions
-
+- Definitions
+    - Toy models: small ReLU networks trained on synthetic data with sparse input features
+    - Superposition: models represent more features than dimensions
+    - Privileged basis: when features align with basis directions (correspond to neurons), as opposed to superposition where features are not aligned (think of it as, features can have the $[1,0], [0,1]$ privileged basis vs $\frac{1}{\sqrt(2)}[1,1], \frac{1}{\sqrt(2)}[1,-1]$ basis)
+        - need something to break symmetry to use privileged basis (eg activation fn)
+        - eg text ebds use non-privileged basis as they have no reason to break symmetry, so even the same type of ebd trained in a different run can produce different vectors as they are similar up to a rotation
+        - eg CNNs tend to have privileged basis as the inputs have spatial structure
+    - polysemantic neurons: appear to respond to unrelated mixtures of inputs
+- Hypotheses
+    - linear representation hypothesis (they believe this to be widespread)
+        - NN representations can be decomposed into understandable features
+        - linearity: features are represented by direction
+    - feature properties that occur sometimes:
+        - non-superposition, i.e. $W^TW$ is invertible
+        - basis-aligned: all $W_i$ are one-hot vectors. partially basis aligned if $W_i$ sparse. requires privileged basis
+    - Superposition Hypothesis: 'neural networks "want to represent more features than they have neurons", so they exploit a property of high-dimensional spaces to simulate a model with many more neurons.'. mathematical motivation:
+        - Johnson–Lindenstrauss lemma allows exp(n) "almost orthogonal" vectors in high-dimensional spaces
+        - compressed sensing: if vector is sparse, and is projected into a lower-dim space, the original vector can be reconstructed. not true for dense vectors
+    - Linear fns in NNs are responsible for most of the computation, so linear repr are the natural format for NNs
+        - one advantage is the consistency which a neuron can select a feature in the previous layer 
+        - "Representing features as different directions may allow non-local generalization in models with linear transformations (such as the weights of neural nets), increasing their statistical efficiency relative to models which can only locally generalize. "
+- Key results
+    - Evidence for superposition in their toy models, suggesting it might also appear in realistic models. "exploring how it interacts with privileged bases. If superposition occurs in networks, it deeply influences what approaches to interpretability research make sense, so unambiguous demonstration seems important."
+    - Both monosemantic and polysemantic neurons can form.
+    - At least some kinds of computation can be performed in superposition.
+    - Phase changes in various forms, eg whether features are stored in superposition or not, dimensionality of features
+    - (might be specific to toy models) Superposition organizes features into geometric structures such as digons, triangles, pentagons, and tetrahedrons.
+    - "We find preliminary evidence that superposition may be linked to adversarial examples and grokking, and might also suggest a theory for the performance of mixture of experts models"
+- Demonstrating superposition
+    - Experiment: Autoencoder reconstruction
+    - Assumptions
+        - Feature sparsity (rarely occur). eg tokens in language, curves in various locations of an image
+        - more features than neurons
+        - features vary in importance
+    - loss: reconstruction MSE but weighted by feature importance $I_i$
+    - result: as we move from the dense to sparse regime, the model moves from representing only the top $m$ (bottleneck dim) important features and positive biases to representing nearly all the $n$ (input dim) features but with interference / superposition and negative biases
+    - Mathematical understanding: binomial expansion and re-express the loss around $S$, obtaining terms of various orders. As $S$ tends to 1 (sparse regime), only the first 2 loss terms dominate. 0th term isnt interesting but 1st term is: similar to loss of linear neural networks but affected by bias-- result: interference term can have lower loss as negative bias can mitigate interference term! 
+    - related to Thomson problem in chemistry: arranging electrons on the surface of a sphere to minimize energy
+    - increased sparsity results in lesser interference (similar concept to collisions?), so the benefit of more features (thus increased accuracy) can outweigh the interference penalties
+- Superposition as a Phase Change
+    - phase diagram for $n=2,m=1$ with feature importance and feature density as axes: 3 regimes where extra feature is not represented, gets dedicated dim, gets stored in superposition!
+        - dense regime: feature goes from not represented to dedicated dim as feature importance increases
+        - sparse regime: feature is stored in superposition, always
+        - intermediate regime: not represented -> superposition -> dedicated dim as feature importance increases
+        - theory and expt match!
+    - $n=3, m=2$ more complicated, now have 4 cases: not represented, superposition, dedicated dim but others not represented, dedicated dim but others in superposition. see fig
+- The Geometry of Superposition
+    - Uniform Superposition, where all features are identical and independent
+        - plot $m/ \left\lVert W  \right\rVert_F $ ("dimensions per feature" since heuristically the weight is 1 if a feature is represented and 0 if it is not)
+            - as we go from the dense to sparse regime, this decreases but has 2 'sticky plateaus' at 1 and 1/2 which vaguely resembles FQHE
+            - 1/2 corresponds to regime where features come in antipodal pairs (one negative of the other)
+        - define the $i$th feature dimensionality as the L2 norm of the vector as a fraction of the sum sq of the projections of other features onto the unit $i$th feature. denominator represents "how many features share the dimension it is embedded in"
+        - from the dimensions per feature plot, overlay with scatter plot for feature dimensionality of all features
+            - see figure
+            - features cluster (i.e. many interfere with each other) at specific fractions of feature dimensionality
+                - with interesting geometry! similar to Thomson problem
+                    - solns can be understood as tegum products
+                    - "possible reason why we observe 3D Thomson problem solutions, despite the fact that we're actually studying a higher dimensional version of the problem. Just as many 3D Thomson solutions are tegum products of 2D and 1D solutions, perhaps higher dimensional solutions are often tegum products of 1D, 2D, and 3D solutions."
+                    - "The orthogonality of factors in tegum products has interesting implications. For the purposes of superposition, it means that there can't be any "interference" across tegum-factors."
+            - "Superposition is what happens when features have fractional dimensionality. That is to say – superposition isn't just one thing!"
+    - Non-Uniform Superposition
+        - far from comphrehensive theory of geometry for this, so they highlight some of the more striking phenomena
+            - varying importance/ sparsity "causes smooth deformation of polytopes as the imbalance builds, up until a critical breaking point at which they snap to another polytope."
+                - eg for $n=5,m=2$, phase transition from digon to pentagon. plotting loss curves for both solns show that during the phase transition, the loss curves switch rankings
+            - "Correlated features prefer to be orthogonal, often forming in different tegum factors."
+                - see graphics!
+                - "Conversely, when features are anti-correlated, models prefer to have them interfere, especially with negative interference"
+                - In some cases, correlated features merge into their principal component $(a+b)/\sqrt{2}$ 
+                    - when going from sparse to dense regime, the features go from superposition to principal component
+                    - "this hints at some kind of interaction between "superposition-like behavior" and "PCA-like behavior"."
+                - "models prefer to arrange correlated features side by side if they cant be orthogonal"
+            - "Anti-correlated features prefer to be in the same tegum factor when superposition is necessary. They prefer to have negative interference, ideally being antipodal."
+    - might not generalize to larger models
+- Superposition and Learning Dynamics
+    - Discrete jumps
+        - use model where all features converge into digons. as training progresses, feature dimensionality
+            - starts in a band between 0-0.3
+            - then bifurcates to head towards 0 or 0.5 and settle there (attractors?). loss was decreasing and plateaus after the feature dim settles
+            - occasionally some features abruptly jump between the 0, 1/2, $1/\sqrt{2}$ level! loss drops abruptly after this
+    - "LEARNING AS GEOMETRIC TRANSFORMATIONS"
+        - see graphic
+    - might not generalize to larger models
+- Experiments show that "vulnerability to adversarial examples sharply increases as superposition forms" and the level of vulnerability closely tracks the inverse feature dimensionality
+- Using ReLU can influence the model to use a privileged basis, allowing weights to be directly interpretable. Done so for a toy model to show how increasing sparsity changes neurons from monosemantic to polysemantic, but unclear how this generalizes to real models as the model doesnt benefit from the ReLU hidden layer
+- Computation in Superposition
+    - task: train a bottlenecked network with 1 hidden layer to learn the absolute value fn. vary sparsity
+    - result: from dense to sparse regime, neurons start from monosemantic to increasing numbers of polysemantic neurons
+        - degree of polysemanticity also increases. in the intermediate regime, polysemantic neurons are still strong in 1 feature but weak in other features, while in the sparse regime, the polysemantic neurons have nontrivial components in multiple features
+            - this intermediate regime neurons are found in realistic language models
+    - observation 1: asymmetric superposition (i.e. magnitudes of features are not the same) to have different magnitudes of interference (see graphic)
+    - observation 2: inhibition! (note, biological neurons also inhibit each other)
+    - "This leads us to hypothesize that the neural networks we observe in practice are in some sense noisily simulating larger, highly sparse networks."
+- The Strategic Picture of Superposition
+    - if there is a technique to project superposition models back to their higher dim non-superposition form, we can identify and enumerate over features, which is important for safety and interpretability. this is equivalent to or necessary for
+        - Decomposing Activation Space
+        - Describing Activations in Terms of Pure Features
+        - circuit analysis
+        - disentangling basic approaches, e.g. we use cosine similarity a lot but in superposition, unrelated features can also have positive dot products which confounds our analysis
+    - challenge: real, performant models tend to employ superposition as it is useful, so getting rid of it is hard but we might try understanding phase transitions to have a model be in the non-superposition regime?
+    - "At present, it's challenging to study superposition in models because we have no ground truth for what the features are."
+    - "Local bases are not enough." " if our goal is to eventually make useful statements about the safety of models, we need mechanistic accounts that hold for the full distribution (and off distribution). Local bases seem unlikely to give this to us."
+- Discussion
+    - Polysemantic neurons exist in the wild, eg InceptionV1 has more polysemantic neurons in later layers and "Early Transformer MLP neurons are extremely polysemantic"
+    - "it's very unclear what to generalize to real networks." (from toy models)
+    - open qns
+        - "Is there a statistical test for catching superposition?"
+        - "How can we control whether superposition and polysemanticity occur?"
+        - "Should we expect superposition to go away if we just scale enough?"
+        - "How important are polysemantic neurons?"
+        - "Does the apparent phase change we observe in features/neurons have any connection to phase changes in compressed sensing?"
+        - "How does superposition relate to non-robust features? "
+        - "To what extent can neural networks "do useful computation" on features in superposition?"
+        - "Can models effectively use nonlinear representations?"
+- Other
+    - the relation (and differences with) compressed sensing is worth a read
 
 ----
 # Generic
@@ -290,6 +402,10 @@ From weights, can we identify explainable algorithms?
 
 -------
 # TODO
+
+### Dynamical and Bayesian Phase Transitions in a Toy Model of Superposition 
+[[Paper](https://arxiv.org/abs/2310.06301)]
+- Also see explainer [[Growth and Form in a Toy Model of Superposition](https://www.lesswrong.com/posts/jvGqQGDrYzZM4MyaN/growth-and-form-in-a-toy-model-of-superposition)]
 
 ### Investigating the learning coefficient of modular addition: hackathon project
 [[Post](https://www.lesswrong.com/posts/4v3hMuKfsGatLXPgt/investigating-the-learning-coefficient-of-modular-addition)]
